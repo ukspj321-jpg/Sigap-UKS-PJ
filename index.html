@@ -45,6 +45,10 @@
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
   .btn-refresh { background: rgba(255,255,255,0.15); color: #fff; border: none; border-radius: 7px; padding: 3px 9px; font-size: 11px; font-weight: 600; cursor: pointer; margin-left: 8px; }
 
+  .jenjang-switch { display: flex; gap: 6px; margin-top: 10px; }
+  .jenjang-btn { padding: 6px 16px; border-radius: 999px; border: 1.5px solid rgba(255,255,255,0.35); background: transparent; color: #fff; font-weight: 700; font-size: 12.5px; cursor: pointer; opacity: 0.75; }
+  .jenjang-btn.active { background: #fff; color: var(--teal-dark); opacity: 1; border-color: #fff; }
+
   .tabs { background: #fff; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
   .tabs-inner { max-width: 880px; margin: 0 auto; display: flex; padding: 0 8px; overflow-x: auto; }
   .tab-btn { display: flex; align-items: center; gap: 7px; padding: 13px 14px; background: transparent; border: none; border-bottom: 2.5px solid transparent; color: var(--muted); font-weight: 600; font-size: 13.5px; cursor: pointer; white-space: nowrap; }
@@ -97,6 +101,10 @@
     <div>
       <div class="header-title">SIGAP UKS</div>
       <div class="header-sub">Kabar cepat untuk wali kelas, tanpa harus mengetik ulang</div>
+      <div class="jenjang-switch" id="jenjangSwitch">
+        <button class="jenjang-btn" data-jenjang="SD">SD</button>
+        <button class="jenjang-btn" data-jenjang="SMP">SMP</button>
+      </div>
       <div class="sync-status" id="syncStatus"><span class="sync-dot loading"></span> Menghubungkan ke Google Sheets...</div>
     </div>
   </div>
@@ -118,11 +126,35 @@ const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz7C7_CUpQfpt4u
 // ---------- State ----------
 let state = {
   tab: "catat",
+  jenjang: localStorage.getItem("sigap_jenjang") || "SD",
   students: [],
   visits: [],
   catat: { query: "", selected: null, jenis: "sakit", keluhan: "", hasilPemeriksaan: "", tindakan: "", kondisi: "Beristirahat di UKS" },
   siswaQuery: "",
 };
+
+function setJenjangUI() {
+  document.querySelectorAll(".jenjang-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.getAttribute("data-jenjang") === state.jenjang);
+  });
+}
+
+function switchJenjang(j) {
+  if (j === state.jenjang) return;
+  state.jenjang = j;
+  localStorage.setItem("sigap_jenjang", j);
+  state.catat = { query: "", selected: null, jenis: "sakit", keluhan: "", hasilPemeriksaan: "", tindakan: "", kondisi: "Beristirahat di UKS" };
+  state.siswaQuery = "";
+  setJenjangUI();
+  document.getElementById("mainContainer").innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--muted)">Memuat data ' + j + '...</div>';
+  loadAllFromSheet();
+}
+
+document.getElementById("jenjangSwitch").addEventListener("click", (e) => {
+  const btn = e.target.closest(".jenjang-btn");
+  if (btn) switchJenjang(btn.getAttribute("data-jenjang"));
+});
+setJenjangUI();
 
 function setSyncStatus(kind, text) {
   const el = document.getElementById("syncStatus");
@@ -134,7 +166,7 @@ function setSyncStatus(kind, text) {
 }
 
 async function apiGet(action) {
-  const res = await fetch(APPS_SCRIPT_URL + "?action=" + action, { method: "GET" });
+  const res = await fetch(APPS_SCRIPT_URL + "?action=" + action + "&jenjang=" + state.jenjang, { method: "GET" });
   if (!res.ok) throw new Error("HTTP " + res.status);
   const data = await res.json();
   if (data.error) throw new Error(data.error);
@@ -144,7 +176,7 @@ async function apiGet(action) {
 async function apiPost(action, data) {
   const res = await fetch(APPS_SCRIPT_URL, {
     method: "POST",
-    body: JSON.stringify({ action: action, data: data }),
+    body: JSON.stringify({ action: action, data: data, jenjang: state.jenjang }),
   });
   if (!res.ok) throw new Error("HTTP " + res.status);
   const json = await res.json();
@@ -313,7 +345,7 @@ function renderSiswaTab() {
   const c = document.getElementById("mainContainer");
   let html = '<div class="card">' +
     '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">' +
-    '<div><div style="font-weight:700;font-size:16px">Impor data siswa</div>' +
+    '<div><div style="font-weight:700;font-size:16px">Impor data siswa <span class="pill" style="color:var(--teal);background:var(--bg);border:1px solid var(--border)">Jenjang ' + state.jenjang + '</span></div>' +
     '<div style="font-size:13px;color:var(--muted);margin-top:3px;line-height:1.5">Unggah file <b>CSV</b> dengan kolom: <b>Nama Siswa</b>, <b>Kelas</b>, <b>Nama Wali Kelas</b>, <b>No WA Wali Kelas</b>. Data lama akan digantikan data baru.<br><span style="color:#94A3A0">Tips: di Excel, pilih File → Save As → pilih format "CSV UTF-8 (Comma delimited)".</span></div></div>' +
     '<button class="btn btn-primary" id="btnUpload">⬆ Unggah CSV</button>' +
     '<input type="file" id="fileInput" accept=".csv,.txt" style="display:none" />' +
@@ -382,7 +414,7 @@ function renderCatatTab() {
     return;
   }
   const st = state.catat;
-  let html = '<div class="card"><div style="font-weight:700;font-size:16px;margin-bottom:14px">Catat kunjungan siswa</div>';
+  let html = '<div class="card"><div style="font-weight:700;font-size:16px;margin-bottom:14px">Catat kunjungan siswa <span class="pill" style="color:var(--teal);background:var(--bg);border:1px solid var(--border)">Jenjang ' + state.jenjang + '</span></div>';
 
   if (!st.selected) {
     html += '<div style="position:relative"><input class="input" id="catatSearch" placeholder="Ketik nama siswa..." value="' + escapeHtml(st.query) + '" autocomplete="off" />';
