@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SIGAP UKS</title>
+<link rel="manifest" href="./manifest.json" />
+<meta name="theme-color" content="#0F6E63" />
+<link rel="icon" href="./icon-192.png" />
+<link rel="apple-touch-icon" href="./icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="SIGAP UKS" />
+<style>
+  :root {
+    --teal: #0F6E63;
+    --teal-dark: #0B5850;
+    --bg: #F6F8F7;
+    --text: #1C2A27;
+    --muted: #6B7A76;
+    --border: #E6EBE9;
+    --amber: #D97706;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Inter, Arial, sans-serif; color: var(--text); }
+  button { font-family: inherit; }
+  input, select, textarea { font-family: inherit; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-thumb { background: #C7D6D2; border-radius: 4px; }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--teal); outline-offset: 2px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .header { background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%); color: #fff; padding: 22px 16px 26px; }
+  .header-inner { max-width: 880px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+  .header-icon { width: 42px; height: 42px; border-radius: 12px; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .header-title { font-weight: 800; font-size: 20px; letter-spacing: -0.3px; }
+  .header-sub { font-size: 12.5px; opacity: 0.85; margin-top: 1px; }
+  .sync-status { font-size: 11px; opacity: 0.85; margin-top: 6px; display: flex; align-items: center; gap: 5px; }
+  .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: #6EE7B7; flex-shrink: 0; }
+  .sync-dot.error { background: #FCA5A5; }
+  .sync-dot.loading { background: #FDE68A; animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .btn-refresh { background: rgba(255,255,255,0.15); color: #fff; border: none; border-radius: 7px; padding: 3px 9px; font-size: 11px; font-weight: 600; cursor: pointer; margin-left: 8px; }
+
+  .tabs { background: #fff; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+  .tabs-inner { max-width: 880px; margin: 0 auto; display: flex; padding: 0 8px; overflow-x: auto; }
+  .tab-btn { display: flex; align-items: center; gap: 7px; padding: 13px 14px; background: transparent; border: none; border-bottom: 2.5px solid transparent; color: var(--muted); font-weight: 600; font-size: 13.5px; cursor: pointer; white-space: nowrap; }
+  .tab-btn.active { border-bottom-color: var(--teal); color: var(--teal); font-weight: 700; }
+  .badge { background: var(--border); color: var(--muted); font-size: 10.5px; font-weight: 700; border-radius: 999px; padding: 1px 6px; min-width: 16px; text-align: center; display: inline-block; }
+  .tab-btn.active .badge { background: var(--teal); color: #fff; }
+
+  .container { max-width: 880px; margin: 0 auto; padding: 20px 16px 48px; }
+  .card { background: #fff; border-radius: 14px; border: 1px solid var(--border); padding: 18px; }
+  .field-label { font-size: 12.5px; font-weight: 600; color: #4B605A; margin-bottom: 6px; }
+  .input, textarea.input, select.input {
+    width: 100%; padding: 9px 12px; border-radius: 9px; border: 1.5px solid var(--border);
+    font-size: 13.5px; color: var(--text); background: #fff;
+  }
+  textarea.input { min-height: 56px; resize: vertical; }
+
+  .btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; border-radius: 9px; border: none; font-weight: 700; font-size: 13.5px; cursor: pointer; }
+  .btn-primary { background: var(--teal); color: #fff; }
+  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+  .btn-ghost { background: #fff; color: #4B605A; border: 1.5px solid var(--border); }
+
+  .empty-state { text-align: center; padding: 56px 20px; color: var(--muted); border: 1.5px dashed #D7E0DD; border-radius: 14px; background: #fff; }
+  .empty-icon { width: 46px; height: 46px; border-radius: 12px; background: #EFF6F4; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; }
+  .empty-title { font-weight: 700; font-size: 15px; color: var(--text); margin-bottom: 4px; }
+  .empty-desc { font-size: 13px; max-width: 320px; margin: 0 auto; line-height: 1.5; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { text-align: left; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; }
+  th, td { padding: 8px; }
+  tbody tr { border-top: 1px solid #EEF2F0; }
+
+  .pill { font-size: 10.5px; font-weight: 700; padding: 1.5px 7px; border-radius: 999px; }
+  .visit-card { background: #fff; border-radius: 12px; border: 1px solid var(--border); padding: 12px 14px; display: flex; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .toggle-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 12px; border-radius: 9px; border: 1.5px solid var(--border); background: #fff; color: #4B605A; font-weight: 600; font-size: 13.5px; cursor: pointer; }
+  .toggle-btn.active { border-color: var(--teal); background: var(--teal); color: #fff; }
+
+  .autocomplete-item { display: block; width: 100%; text-align: left; padding: 10px 12px; border: none; background: #fff; cursor: pointer; border-bottom: 1px solid #F1F4F3; font-size: 13.5px; }
+  .selected-student { display: flex; align-items: center; justify-content: space-between; background: #EFF6F4; border: 1px solid #D7E8E3; border-radius: 10px; padding: 10px 12px; margin-bottom: 16px; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(20,30,28,0.45); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
+  .modal { background: #fff; border-radius: 14px; max-width: 440px; width: 100%; padding: 20px; max-height: 85vh; display: flex; flex-direction: column; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.18); z-index: 100; max-width: 90%; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="header-icon">🩺</div>
+    <div>
+      <div class="header-title">SIGAP UKS</div>
+      <div class="header-sub">Kabar cepat untuk wali kelas, tanpa harus mengetik ulang</div>
+      <div class="sync-status" id="syncStatus"><span class="sync-dot loading"></span> Menghubungkan ke Google Sheets...</div>
+    </div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tabs-inner" id="tabsBar"></div>
+</div>
+
+<div class="container" id="mainContainer"></div>
+<div id="modalRoot"></div>
+<div id="toastRoot"></div>
+
+<script>
+// ====== KONFIGURASI ======
+// URL Web App Google Apps Script Anda (hasil dari langkah Deploy)
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz7C7_CUpQfpt4u3tg_A-o1S63kSMHfSVSRESjyso1J1Sv-TTGzN1Ibe_xlc3cP0rt6/exec";
+
+// ---------- State ----------
+let state = {
+  tab: "catat",
+  students: [],
+  visits: [],
+  catat: { query: "", selected: null, jenis: "sakit", keluhan: "", hasilPemeriksaan: "", tindakan: "", kondisi: "Beristirahat di UKS" },
+  siswaQuery: "",
+};
+
+function setSyncStatus(kind, text) {
+  const el = document.getElementById("syncStatus");
+  if (!el) return;
+  el.innerHTML = '<span class="sync-dot ' + kind + '"></span> ' + text +
+    (kind !== "loading" ? '<button class="btn-refresh" id="btnRefreshSync">Muat ulang</button>' : "");
+  const btn = document.getElementById("btnRefreshSync");
+  if (btn) btn.addEventListener("click", loadAllFromSheet);
+}
+
+async function apiGet(action) {
+  const res = await fetch(APPS_SCRIPT_URL + "?action=" + action, { method: "GET" });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+async function apiPost(action, data) {
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: "POST",
+    body: JSON.stringify({ action: action, data: data }),
+  });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const json = await res.json();
+  if (json.error) throw new Error(json.error);
+  return json;
+}
+
+async function loadAllFromSheet() {
+  setSyncStatus("loading", "Memuat data...");
+  try {
+    const [students, visits] = await Promise.all([apiGet("getStudents"), apiGet("getVisits")]);
+    state.students = (students || []).map((s) => ({ ...s, id: String(s.id) }));
+    state.visits = (visits || []).map((v) => ({ ...v, id: String(v.id), terkirim: v.terkirim === true || v.terkirim === "TRUE" || v.terkirim === "true" }))
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    setSyncStatus("", "Tersambung ke Google Sheets");
+    render();
+  } catch (err) {
+    setSyncStatus("error", "Gagal memuat data (cek internet / URL)");
+    showToast("Gagal memuat data dari Google Sheets: " + err.message, "error");
+  }
+}
+
+async function saveStudents(list) {
+  state.students = list;
+  render();
+  try {
+    await apiPost("saveStudents", list);
+    setSyncStatus("", "Tersambung ke Google Sheets");
+  } catch (err) {
+    setSyncStatus("error", "Gagal menyimpan ke Google Sheets");
+    showToast("Gagal menyimpan data siswa: " + err.message, "error");
+  }
+}
+
+async function saveVisits(list) {
+  state.visits = list;
+  render();
+  try {
+    await apiPost("saveVisits", list);
+    setSyncStatus("", "Tersambung ke Google Sheets");
+  } catch (err) {
+    setSyncStatus("error", "Gagal menyimpan ke Google Sheets");
+    showToast("Gagal menyimpan riwayat kunjungan: " + err.message, "error");
+  }
+}
+
+function uid() { return Math.random().toString(36).slice(2, 10); }
+
+function normalizePhone(raw) {
+  if (!raw) return "";
+  let n = String(raw).replace(/[^\d+]/g, "");
+  n = n.replace(/^\+/, "");
+  if (n.startsWith("0")) n = "62" + n.slice(1);
+  if (!n.startsWith("62")) n = "62" + n;
+  return n;
+}
+
+function fmtTime(d) { return d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }); }
+function fmtDate(d) { return d.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }); }
+
+function buildMessage({ nama, kelas, jenis, keluhan, hasilPemeriksaan, tindakan, kondisi, waktu }) {
+  const jenisLabel = jenis === "cedera" ? "cedera" : "sakit";
+  return (
+    "Yth. Bapak/Ibu Wali Kelas " + kelas + ",\n\n" +
+    "Kami informasikan bahwa ananda *" + nama + "* (Kelas " + kelas + ") pada pukul " + waktu + " sedang berada di UKS karena " + jenisLabel + ".\n\n" +
+    "Keluhan: " + (keluhan || "-") + "\n" +
+    "Hasil pemeriksaan: " + (hasilPemeriksaan || "-") + "\n" +
+    "Tindakan yang diberikan: " + (tindakan || "-") + "\n" +
+    "Kondisi saat ini: " + kondisi + "\n\n" +
+    "Besar harapan kami agar informasi ini menjadi perhatian Bapak/Ibu. Atas perhatian dan kerja samanya, kami ucapkan terima kasih.\n\n" +
+    "— Petugas UKS"
+  );
+}
+
+function escapeHtml(str) {
+  return String(str == null ? "" : str)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+// ---------- Simple CSV parser (supports quoted fields) ----------
+function parseCSV(text) {
+  text = text.replace(/^\uFEFF/, ""); // strip BOM
+  const rows = [];
+  let row = [], field = "", inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i], next = text[i + 1];
+    if (inQuotes) {
+      if (c === '"' && next === '"') { field += '"'; i++; }
+      else if (c === '"') { inQuotes = false; }
+      else { field += c; }
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === ',') { row.push(field); field = ""; }
+      else if (c === '\r') { /* skip */ }
+      else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ""; }
+      else field += c;
+    }
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  if (!rows.length) return [];
+  const headers = rows[0].map((h) => h.trim());
+  return rows.slice(1).filter((r) => r.some((c) => c.trim() !== "")).map((r) => {
+    const obj = {};
+    headers.forEach((h, idx) => { obj[h] = r[idx] !== undefined ? r[idx].trim() : ""; });
+    return obj;
+  });
+}
+
+function findKey(row, candidates) {
+  const keys = Object.keys(row);
+  for (const c of candidates) {
+    const hit = keys.find((k) => k.toLowerCase().trim() === c);
+    if (hit) return hit;
+  }
+  for (const c of candidates) {
+    const hit = keys.find((k) => k.toLowerCase().includes(c));
+    if (hit) return hit;
+  }
+  return null;
+}
+
+let toastTimer = null;
+function showToast(msg, kind) {
+  const root = document.getElementById("toastRoot");
+  const bg = kind === "error" ? "#7A2A1E" : "#0F6E63";
+  const icon = kind === "error" ? "⚠️" : "✅";
+  root.innerHTML = '<div class="toast" style="background:' + bg + '">' + icon + ' ' + escapeHtml(msg) + '</div>';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { root.innerHTML = ""; }, 3200);
+}
+
+// ---------- Rendering ----------
+function render() {
+  renderTabs();
+  if (state.tab === "siswa") renderSiswaTab();
+  else if (state.tab === "catat") renderCatatTab();
+  else renderRiwayatTab();
+}
+
+function renderTabs() {
+  const items = [
+    { id: "catat", label: "Catat Kunjungan", icon: "📋" },
+    { id: "siswa", label: "Data Siswa", icon: "👥", badge: state.students.length },
+    { id: "riwayat", label: "Riwayat", icon: "🕐", badge: state.visits.length },
+  ];
+  const bar = document.getElementById("tabsBar");
+  bar.innerHTML = items.map((it) => {
+    const active = state.tab === it.id;
+    const badge = (typeof it.badge === "number" && it.badge > 0) ? '<span class="badge">' + it.badge + '</span>' : "";
+    return '<button class="tab-btn ' + (active ? "active" : "") + '" data-tab="' + it.id + '">' + it.icon + ' ' + it.label + ' ' + badge + '</button>';
+  }).join("");
+  bar.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => { state.tab = btn.getAttribute("data-tab"); render(); });
+  });
+}
+
+function emptyStateHtml(icon, title, desc) {
+  return '<div class="empty-state"><div class="empty-icon" style="font-size:22px">' + icon + '</div>' +
+    '<div class="empty-title">' + escapeHtml(title) + '</div>' +
+    '<div class="empty-desc">' + escapeHtml(desc) + '</div></div>';
+}
+
+// ---- Data Siswa Tab ----
+function renderSiswaTab() {
+  const c = document.getElementById("mainContainer");
+  let html = '<div class="card">' +
+    '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap">' +
+    '<div><div style="font-weight:700;font-size:16px">Impor data siswa</div>' +
+    '<div style="font-size:13px;color:var(--muted);margin-top:3px;line-height:1.5">Unggah file <b>CSV</b> dengan kolom: <b>Nama Siswa</b>, <b>Kelas</b>, <b>Nama Wali Kelas</b>, <b>No WA Wali Kelas</b>. Data lama akan digantikan data baru.<br><span style="color:#94A3A0">Tips: di Excel, pilih File → Save As → pilih format "CSV UTF-8 (Comma delimited)".</span></div></div>' +
+    '<button class="btn btn-primary" id="btnUpload">⬆ Unggah CSV</button>' +
+    '<input type="file" id="fileInput" accept=".csv,.txt" style="display:none" />' +
+    '</div></div><div style="height:14px"></div>';
+
+  if (state.students.length === 0) {
+    html += emptyStateHtml("👥", "Belum ada data siswa", "Unggah file CSV berisi data siswa dan wali kelas untuk mulai mencatat kunjungan.");
+  } else {
+    const q = state.siswaQuery.toLowerCase();
+    const filtered = state.students.filter((s) =>
+      s.nama.toLowerCase().includes(q) || s.kelas.toLowerCase().includes(q) || s.waliKelas.toLowerCase().includes(q)
+    );
+    html += '<div class="card">' +
+      '<input class="input" id="siswaSearch" placeholder="Cari nama siswa, kelas, atau wali kelas..." value="' + escapeHtml(state.siswaQuery) + '" style="margin-bottom:12px" />' +
+      '<div style="max-height:420px;overflow-y:auto"><table><thead><tr><th>Nama</th><th>Kelas</th><th>Wali Kelas</th><th>No. WA</th></tr></thead><tbody>' +
+      filtered.map((s) => '<tr><td>' + escapeHtml(s.nama) + '</td><td>' + escapeHtml(s.kelas) + '</td><td>' + escapeHtml(s.waliKelas) + '</td><td style="color:var(--muted)">' + escapeHtml(s.noWa || "-") + '</td></tr>').join("") +
+      '</tbody></table>' +
+      (filtered.length === 0 ? '<div style="padding:24px;text-align:center;color:#94A3A0;font-size:13px">Tidak ada hasil untuk "' + escapeHtml(state.siswaQuery) + '"</div>' : "") +
+      '</div></div>';
+  }
+
+  c.innerHTML = html;
+
+  document.getElementById("btnUpload").addEventListener("click", () => document.getElementById("fileInput").click());
+  document.getElementById("fileInput").addEventListener("change", handleCsvUpload);
+  const searchInput = document.getElementById("siswaSearch");
+  if (searchInput) searchInput.addEventListener("input", (e) => { state.siswaQuery = e.target.value; renderSiswaTab(); });
+}
+
+function handleCsvUpload(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      const rows = parseCSV(evt.target.result);
+      if (!rows.length) { showToast("File kosong atau format tidak terbaca", "error"); return; }
+      const sample = rows[0];
+      const kNama = findKey(sample, ["nama siswa", "nama"]);
+      const kKelas = findKey(sample, ["kelas"]);
+      const kWali = findKey(sample, ["nama wali kelas", "wali kelas", "wali"]);
+      const kNoWa = findKey(sample, ["no wa wali kelas", "no wa", "nomor wa", "whatsapp", "no hp"]);
+      if (!kNama || !kKelas || !kWali || !kNoWa) {
+        showToast("Kolom wajib tidak lengkap. Pastikan ada: Nama Siswa, Kelas, Nama Wali Kelas, No WA Wali Kelas", "error");
+        return;
+      }
+      const parsed = rows.filter((r) => String(r[kNama]).trim()).map((r) => ({
+        id: uid(), nama: String(r[kNama]).trim(), kelas: String(r[kKelas]).trim(),
+        waliKelas: String(r[kWali]).trim(), noWa: normalizePhone(r[kNoWa]),
+      }));
+      saveStudents(parsed);
+      showToast(parsed.length + " data siswa berhasil dimuat");
+    } catch (err) {
+      showToast("Gagal membaca file. Pastikan format CSV benar", "error");
+    }
+  };
+  reader.readAsText(file, "UTF-8");
+  e.target.value = "";
+}
+
+// ---- Catat Kunjungan Tab ----
+function renderCatatTab() {
+  const c = document.getElementById("mainContainer");
+  if (state.students.length === 0) {
+    c.innerHTML = emptyStateHtml("👥", "Data siswa belum tersedia", "Unggah data siswa terlebih dahulu di tab Data Siswa sebelum mencatat kunjungan.");
+    return;
+  }
+  const st = state.catat;
+  let html = '<div class="card"><div style="font-weight:700;font-size:16px;margin-bottom:14px">Catat kunjungan siswa</div>';
+
+  if (!st.selected) {
+    html += '<div style="position:relative"><input class="input" id="catatSearch" placeholder="Ketik nama siswa..." value="' + escapeHtml(st.query) + '" autocomplete="off" />';
+    if (st.query.trim()) {
+      const q = st.query.toLowerCase();
+      const results = state.students.filter((s) => s.nama.toLowerCase().includes(q)).slice(0, 6);
+      if (results.length) {
+        html += '<div style="margin-top:4px;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#fff">' +
+          results.map((s) => '<button class="autocomplete-item" data-id="' + s.id + '"><div style="font-weight:600">' + escapeHtml(s.nama) + '</div><div style="font-size:12px;color:var(--muted)">Kelas ' + escapeHtml(s.kelas) + ' · Wali: ' + escapeHtml(s.waliKelas) + '</div></button>').join("") +
+          '</div>';
+      }
+    }
+    html += '</div>';
+  } else {
+    html += '<div class="selected-student"><div><div style="font-weight:700;font-size:14px">' + escapeHtml(st.selected.nama) + '</div>' +
+      '<div style="font-size:12.5px;color:#4B605A">Kelas ' + escapeHtml(st.selected.kelas) + ' · Wali kelas: ' + escapeHtml(st.selected.waliKelas) + '</div></div>' +
+      '<button id="btnClearSelected" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px">✕</button></div>';
+
+    html += '<div style="display:flex;flex-direction:column;gap:14px">' +
+      '<div><div class="field-label">Jenis</div><div style="display:flex;gap:8px">' +
+      '<button class="toggle-btn ' + (st.jenis === "sakit" ? "active" : "") + '" data-jenis="sakit">🩺 Sakit</button>' +
+      '<button class="toggle-btn ' + (st.jenis === "cedera" ? "active" : "") + '" data-jenis="cedera">🩹 Cedera</button>' +
+      '</div></div>' +
+      '<div><div class="field-label">Keluhan / kondisi awal</div><textarea class="input" id="keluhanInput" placeholder="' + (st.jenis === "cedera" ? "Contoh: terjatuh saat olahraga, luka lecet di lutut" : "Contoh: demam, pusing, mual") + '">' + escapeHtml(st.keluhan) + '</textarea></div>' +
+      '<div><div class="field-label">Hasil pemeriksaan</div><textarea class="input" id="hasilPemeriksaanInput" placeholder="Contoh: suhu tubuh 37.8°C, tekanan darah normal">' + escapeHtml(st.hasilPemeriksaan) + '</textarea></div>' +
+      '<div><div class="field-label">Tindakan yang diberikan</div><textarea class="input" id="tindakanInput" placeholder="Contoh: dikompres, diberi obat, dibersihkan dan diperban">' + escapeHtml(st.tindakan) + '</textarea></div>' +
+      '<div><div class="field-label">Kondisi saat ini</div><select class="input" id="kondisiInput">' +
+      ["Beristirahat di UKS", "Sudah membaik, kembali ke kelas", "Perlu dijemput orang tua", "Dirujuk ke fasilitas kesehatan"].map((k) => '<option ' + (st.kondisi === k ? "selected" : "") + '>' + k + '</option>').join("") +
+      '</select></div>' +
+      '<button class="btn btn-primary" id="btnSubmitVisit" style="justify-content:center;padding:12px 16px;font-size:14px">📤 Siapkan Pesan ke Wali Kelas</button>' +
+      '</div>';
+  }
+  html += '</div>';
+  c.innerHTML = html;
+
+  const searchInput = document.getElementById("catatSearch");
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => { st.query = e.target.value; renderCatatTab(); });
+    searchInput.focus();
+    searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+  }
+  c.querySelectorAll(".autocomplete-item").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const student = state.students.find((s) => s.id === btn.getAttribute("data-id"));
+      st.selected = student; st.query = "";
+      renderCatatTab();
+    });
+  });
+  const clearBtn = document.getElementById("btnClearSelected");
+  if (clearBtn) clearBtn.addEventListener("click", () => { resetCatat(); renderCatatTab(); });
+
+  c.querySelectorAll(".toggle-btn").forEach((btn) => {
+    btn.addEventListener("click", () => { st.jenis = btn.getAttribute("data-jenis"); renderCatatTab(); });
+  });
+  const keluhanInput = document.getElementById("keluhanInput");
+  if (keluhanInput) keluhanInput.addEventListener("input", (e) => { st.keluhan = e.target.value; });
+  const hasilPemeriksaanInput = document.getElementById("hasilPemeriksaanInput");
+  if (hasilPemeriksaanInput) hasilPemeriksaanInput.addEventListener("input", (e) => { st.hasilPemeriksaan = e.target.value; });
+  const tindakanInput = document.getElementById("tindakanInput");
+  if (tindakanInput) tindakanInput.addEventListener("input", (e) => { st.tindakan = e.target.value; });
+  const kondisiInput = document.getElementById("kondisiInput");
+  if (kondisiInput) kondisiInput.addEventListener("change", (e) => { st.kondisi = e.target.value; });
+  const submitBtn = document.getElementById("btnSubmitVisit");
+  if (submitBtn) submitBtn.addEventListener("click", handleSubmitVisit);
+}
+
+function resetCatat() {
+  state.catat = { query: "", selected: null, jenis: "sakit", keluhan: "", hasilPemeriksaan: "", tindakan: "", kondisi: "Beristirahat di UKS" };
+}
+
+function handleSubmitVisit() {
+  const st = state.catat;
+  if (!st.selected) { showToast("Pilih siswa terlebih dahulu", "error"); return; }
+  if (!st.selected.noWa) { showToast("Nomor WA wali kelas untuk siswa ini tidak tersedia", "error"); return; }
+  const now = new Date();
+  const waktu = fmtTime(now);
+  const message = buildMessage({ nama: st.selected.nama, kelas: st.selected.kelas, jenis: st.jenis, keluhan: st.keluhan, hasilPemeriksaan: st.hasilPemeriksaan, tindakan: st.tindakan, kondisi: st.kondisi, waktu });
+  const visit = { id: uid(), studentId: st.selected.id, nama: st.selected.nama, kelas: st.selected.kelas, waliKelas: st.selected.waliKelas, jenis: st.jenis, keluhan: st.keluhan, hasilPemeriksaan: st.hasilPemeriksaan, tindakan: st.tindakan, kondisi: st.kondisi, timestamp: now.toISOString(), terkirim: false };
+  saveVisits([visit, ...state.visits]);
+  showConfirmModal(visit, message, st.selected.noWa);
+}
+
+function showConfirmModal(visit, message, noWa) {
+  const root = document.getElementById("modalRoot");
+  root.innerHTML = '<div class="modal-overlay"><div class="modal">' +
+    '<div style="font-weight:700;font-size:15.5px;margin-bottom:4px">Kirim ke wali kelas ' + escapeHtml(visit.waliKelas) + '?</div>' +
+    '<div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">WhatsApp akan terbuka dengan pesan berikut sudah terisi. Anda tinggal menekan tombol kirim di WhatsApp.</div>' +
+    '<div style="background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:12.5px;white-space:pre-wrap;line-height:1.5;overflow-y:auto;flex:1">' + escapeHtml(message) + '</div>' +
+    '<div style="display:flex;gap:8px;margin-top:14px">' +
+    '<button class="btn btn-ghost" id="btnCancelSend" style="flex:1;justify-content:center">Batal</button>' +
+    '<button class="btn btn-primary" id="btnConfirmSend" style="flex:1;justify-content:center">📤 Buka WhatsApp</button>' +
+    '</div></div></div>';
+
+  document.getElementById("btnCancelSend").addEventListener("click", () => { root.innerHTML = ""; });
+  document.getElementById("btnConfirmSend").addEventListener("click", () => {
+    const url = "https://wa.me/" + noWa + "?text=" + encodeURIComponent(message);
+    window.open(url, "_blank");
+    const next = state.visits.map((v) => (v.id === visit.id ? { ...v, terkirim: true } : v));
+    saveVisits(next);
+    showToast("Pesan disiapkan di WhatsApp — tekan kirim di sana");
+    root.innerHTML = "";
+    resetCatat();
+    state.tab = "riwayat";
+    render();
+  });
+}
+
+// ---- Riwayat Tab ----
+function renderRiwayatTab() {
+  const c = document.getElementById("mainContainer");
+  if (state.visits.length === 0) {
+    c.innerHTML = emptyStateHtml("🕐", "Belum ada riwayat kunjungan", "Catatan kunjungan yang sudah dibuat akan muncul di sini.");
+    return;
+  }
+  c.innerHTML = state.visits.map((v) => {
+    const d = new Date(v.timestamp);
+    const isCedera = v.jenis === "cedera";
+    return '<div class="visit-card" style="border-left:4px solid ' + (isCedera ? "#D97706" : "#0F6E63") + '">' +
+      '<div style="min-width:0"><div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">' +
+      '<span style="font-weight:700;font-size:14px">' + escapeHtml(v.nama) + '</span>' +
+      '<span style="font-size:12px;color:var(--muted)">Kelas ' + escapeHtml(v.kelas) + '</span>' +
+      '<span class="pill" style="color:' + (isCedera ? "#D97706" : "#0F6E63") + ';background:' + (isCedera ? "#FBEED9" : "#DFF0EC") + '">' + (isCedera ? "Cedera" : "Sakit") + '</span>' +
+      (v.terkirim ? '<span style="font-size:11px;color:#0F6E63">✅ Disiapkan</span>' : '') +
+      '</div>' +
+      (v.keluhan ? '<div style="font-size:12.5px;color:#4B605A;margin-top:4px">' + escapeHtml(v.keluhan) + '</div>' : '') +
+      '<div style="font-size:11.5px;color:#94A3A0;margin-top:4px">' + fmtDate(d) + ' · ' + fmtTime(d) + ' · Wali kelas: ' + escapeHtml(v.waliKelas) + '</div>' +
+      '</div>' +
+      '<button class="btnDeleteVisit" data-id="' + v.id + '" style="background:none;border:none;cursor:pointer;color:#B8C3C0;flex-shrink:0;height:fit-content;font-size:15px">🗑</button>' +
+      '</div>';
+  }).join("");
+
+  c.querySelectorAll(".btnDeleteVisit").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      saveVisits(state.visits.filter((v) => v.id !== btn.getAttribute("data-id")));
+    });
+  });
+}
+
+renderTabs();
+document.getElementById("mainContainer").innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--muted)">Memuat data dari Google Sheets...</div>';
+loadAllFromSheet();
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
